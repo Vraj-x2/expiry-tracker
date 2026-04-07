@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Expiry</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #F5F2EE;
+      --surface:    #FFFFFF;
+      --border:     #E4E0DA;
+      --text:       #1A1714;
+      --muted:      #9A9490;
+      --expired:    #C0392B;
+      --today:      #E74C3C;
+      --soon:       #E67E22;
+      --week:       #C9A800;
+      --expired-bg: #FDF0EE;
+      --today-bg:   #FEF2F2;
+      --soon-bg:    #FEF6EE;
+      --week-bg:    #FEFCE8;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      padding: 3rem 1.25rem 1.25rem;
+    }
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    header p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Add form */
+    .add-form {
+      margin: 0 1.25rem 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .add-form input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+      font-size: 0.95rem;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .add-form input:focus { border-color: var(--text); }
+    .add-form input::placeholder { color: var(--muted); }
+    .add-form button {
+      width: 100%;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 0.8rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .add-form button:active { opacity: 0.7; }
+
+    /* List */
+    .list {
+      flex: 1;
+      padding: 0 1.25rem 5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .section-label {
+      font-size: 0.68rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.85rem 0 0.3rem;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      transition: opacity 0.2s;
+    }
+    .item.expired { background: var(--expired-bg); border-color: #FACAC6; }
+    .item.today   { background: var(--today-bg);   border-color: #FECACA; }
+    .item.soon    { background: var(--soon-bg);     border-color: #FED7AA; }
+    .item.week    { background: var(--week-bg);     border-color: #FEF08A; }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--border);
+    }
+    .item.expired .dot { background: var(--expired); }
+    .item.today   .dot { background: var(--today); }
+    .item.soon    .dot { background: var(--soon); }
+    .item.week    .dot { background: var(--week); }
+
+    .item-body { flex: 1; min-width: 0; }
+    .item-name {
+      font-size: 0.92rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item.expired .item-name { color: var(--expired); }
+    .item.today   .item-name { color: var(--today); }
+    .item.soon    .item-name { color: var(--soon); }
+    .item.week    .item-name { color: var(--week); }
+
+    .item-date {
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      margin-top: 0.1rem;
+    }
+    .item.expired .item-date { color: var(--expired); opacity: 0.65; }
+    .item.today   .item-date { color: var(--today);   opacity: 0.65; }
+    .item.soon    .item-date { color: var(--soon);    opacity: 0.65; }
+    .item.week    .item-date { color: var(--week);    opacity: 0.65; }
+
+    .del-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.4rem;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1;
+      border-radius: 6px;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .del-btn:active { color: var(--expired); }
+
+    .empty {
+      text-align: center;
+      padding: 3.5rem 0;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(5rem);
+      background: var(--text);
+      color: var(--bg);
+      padding: 0.55rem 1.2rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+      opacity: 0;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Expiry Tracker</h1>
+    <p id="today-label"></p>
+  </header>
+
+  <div class="add-form">
+    <input type="text" id="f-name" placeholder="Item name"
+           autocomplete="off" autocapitalize="words" autocorrect="off" />
+    <input type="date" id="f-date" />
+    <button onclick="addItem()">Add Item</button>
+  </div>
+
+  <div class="list" id="list"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = '/api/products';
+  let items = [];
+
+  const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function offsetDate(n) {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function urgency(exp) {
+    const t = todayStr();
+    if (exp < t)          return 'expired';
+    if (exp === t)         return 'today';
+    if (exp <= offsetDate(2)) return 'soon';
+    if (exp <= offsetDate(7)) return 'week';
+    return 'ok';
+  }
+
+  function fmtDate(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const t  = todayStr();
+    const d1 = offsetDate(1);
+    if (str === t)  return 'Today';
+    if (str === d1) return 'Tomorrow';
+    if (str < t) {
+      const diff = Math.round((new Date(t) - new Date(str)) / 86400000);
+      return diff === 1 ? 'Yesterday' : `${diff} days ago`;
+    }
+    return `${DAYS[dt.getDay()].slice(0, 3)}, ${MONTHS[m - 1]} ${d}`;
+  }
+
+  function setTodayLabel() {
+    const n = new Date();
+    document.getElementById('today-label').textContent =
+      `${DAYS[n.getDay()]}, ${MONTHS[n.getMonth()]} ${n.getDate()}`;
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(API);
+      if (!res.ok) throw 0;
+      items = await res.json();
+      render();
+    } catch {
+      toast('Cannot reach server');
+    }
+  }
+
+  function render() {
+    const list = document.getElementById('list');
+    if (!items.length) {
+      list.innerHTML = '<p class="empty">No items tracked.</p>';
+      return;
+    }
+
+    const groups = {
+      expired: { label: 'Expired',     rows: [] },
+      today:   { label: 'Today',       rows: [] },
+      soon:    { label: 'In 1-2 days', rows: [] },
+      week:    { label: 'This week',   rows: [] },
+      ok:      { label: 'Coming up',   rows: [] },
+    };
+
+    for (const item of items) {
+      groups[urgency(item.expiryDate)].rows.push(item);
+    }
+
+    let html = '';
+    for (const [key, g] of Object.entries(groups)) {
+      if (!g.rows.length) continue;
+      html += `<div class="section-label">${g.label}</div>`;
+      for (const item of g.rows) {
+        html += `
+          <div class="item ${key}" id="item-${item.id}">
+            <div class="dot"></div>
+            <div class="item-body">
+              <div class="item-name">${esc(item.name)}</div>
+              <div class="item-date">${fmtDate(item.expiryDate)}</div>
+            </div>
+            <button class="del-btn" onclick="remove(${item.id})" aria-label="Remove">&#x2715;</button>
+          </div>`;
+      }
+    }
+    list.innerHTML = html;
+  }
+
+  async function addItem() {
+    const name = document.getElementById('f-name').value.trim();
+    const date = document.getElementById('f-date').value;
+    if (!name || !date) { toast('Enter a name and date'); return; }
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, expiryDate: date })
+      });
+      if (!res.ok) throw 0;
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-name').focus();
+      toast('Added');
+      load();
+    } catch { toast('Failed to add'); }
+  }
+
+  async function remove(id) {
+    const el = document.getElementById(`item-${id}`);
+    if (el) el.style.opacity = '0.35';
+    try {
+      const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw 0;
+      items = items.filter(i => i.id !== id);
+      render();
+      toast('Removed');
+    } catch {
+      if (el) el.style.opacity = '1';
+      toast('Failed to remove');
+    }
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  let tt;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(tt);
+    tt = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // Init
+  document.getElementById('f-date').value = todayStr();
+  document.getElementById('f-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addItem();
+  });
+  setTodayLabel();
+  load();
+</script>
+</body>
+</html>
